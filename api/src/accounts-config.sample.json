@@ -1,0 +1,20 @@
+{
+  "static": [
+    {
+      "accountId": "ACCOUNT_ID",
+      "accountName": "example-account",
+      "accessKeyId": "SET_LOCALLY_ONLY",
+      "secretAccessKey": "SET_LOCALLY_ONLY",
+      "sessionToken": ""
+    }
+  ],
+  "assumeRoles": [
+    {
+      "accountId": "ACCOUNT_ID",
+      "accountName": "example-account",
+      "roleArn": "arn:aws:iam::ACCOUNT_ID:role/CostwatchReadOnly",
+      "externalId": ""
+    }
+  ],
+  "excludeAccounts": []
+}

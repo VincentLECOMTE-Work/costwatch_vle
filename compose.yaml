@@ -1,0 +1,118 @@
+name: costwatch
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-costwatch}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+      POSTGRES_DB: "${POSTGRES_DB:-costwatch}"
+    ports: ["5432:5432"]
+    volumes:
+      - db_data_1761133439:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U costwatch -d costwatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER:-costwatch}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-costwatch}"
+      PORT: "8081"
+      CORS_ORIGIN: http://localhost:8080,http://10.1.57.255:8080
+      AWS_REGION: eu-west-3
+      EC2_REGIONS: eu-west-3,us-east-1
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN:-}"
+      DATA_FROM: ${DATA_FROM:-LOCAL_DB}
+      AWS_LIVE_ENABLED: ${AWS_LIVE_ENABLED:-false}
+      AWS_EC2_METADATA_DISABLED: "true"
+      INGEST_RI: ${INGEST_RI:-true}
+      ACCOUNT_NAME_SOURCE: org,alias
+      CE_METRICS: UnblendedCost,AmortizedCost
+      INGEST_INCLUDE_REGION: "false"
+      DELTA_DAYS: "3"
+      INGEST_LAG_DAYS: ${INGEST_LAG_DAYS:-2}
+      INGEST_OVERLAP_DAYS: ${INGEST_OVERLAP_DAYS:-1}
+      INGEST_BOOTSTRAP_DAYS: ${INGEST_BOOTSTRAP_DAYS:-30}
+      INGEST_SP_CACHE_WARM: ${INGEST_SP_CACHE_WARM:-true}
+      SP_CACHE_ENABLED: ${SP_CACHE_ENABLED:-true}
+      SP_COVERAGE_CACHE_TTL_SECONDS: ${SP_COVERAGE_CACHE_TTL_SECONDS:-21600}
+      SP_UTILIZATION_CACHE_TTL_SECONDS: ${SP_UTILIZATION_CACHE_TTL_SECONDS:-21600}
+      SP_INVENTORY_CACHE_TTL_SECONDS: ${SP_INVENTORY_CACHE_TTL_SECONDS:-21600}
+    ports: ["8081:8081"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./api/src/account-aliases.json:/app/src/account-aliases.json:ro
+      - ./api/src/accounts-config.json:/app/src/accounts-config.json:ro
+      - ./api/src/accounts-config.json:/app/accounts-config.json:ro
+
+  web:
+    build: ./web
+    ports: ["8080:80"]
+    depends_on: [api]
+
+  ingest-scheduler:
+    build: ./api
+    command: ["npm", "run", "ingest:metrics:auto:scheduler"]
+    profiles: ["automation"]
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER:-costwatch}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-costwatch}"
+      AWS_REGION: eu-west-3
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN:-}"
+      CE_METRICS: UnblendedCost,AmortizedCost
+      INGEST_RI: ${INGEST_RI:-true}
+      INGEST_INCLUDE_REGION: "false"
+      INGEST_LAG_DAYS: ${INGEST_LAG_DAYS:-2}
+      INGEST_OVERLAP_DAYS: ${INGEST_OVERLAP_DAYS:-1}
+      INGEST_BOOTSTRAP_DAYS: ${INGEST_BOOTSTRAP_DAYS:-30}
+      INGEST_SP_CACHE_WARM: ${INGEST_SP_CACHE_WARM:-true}
+      SP_CACHE_ENABLED: ${SP_CACHE_ENABLED:-true}
+      SP_COVERAGE_CACHE_TTL_SECONDS: ${SP_COVERAGE_CACHE_TTL_SECONDS:-21600}
+      SP_UTILIZATION_CACHE_TTL_SECONDS: ${SP_UTILIZATION_CACHE_TTL_SECONDS:-21600}
+      SP_INVENTORY_CACHE_TTL_SECONDS: ${SP_INVENTORY_CACHE_TTL_SECONDS:-21600}
+      INGEST_AUTO_AT_UTC: ${INGEST_AUTO_AT_UTC:-03:15}
+      INGEST_AUTO_RUN_ON_START: ${INGEST_AUTO_RUN_ON_START:-true}
+      INGEST_AUTO_RETRY_MINUTES: ${INGEST_AUTO_RETRY_MINUTES:-30}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./api/src/account-aliases.json:/app/src/account-aliases.json:ro
+      - ./api/src/accounts-config.json:/app/src/accounts-config.json:ro
+      - ./api/src/accounts-config.json:/app/accounts-config.json:ro
+
+  ec2-snapshot-scheduler:
+    build: ./api
+    command: ["npm", "run", "ingest:ec2:snapshot:scheduler"]
+    profiles: ["ec2-snapshots"]
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER:-costwatch}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-costwatch}"
+      AWS_REGION: eu-west-3
+      EC2_SNAPSHOT_REGIONS: ${EC2_SNAPSHOT_REGIONS:-eu-west-3}
+      EC2_SNAPSHOT_MINUTE: ${EC2_SNAPSHOT_MINUTE:-5}
+      EC2_SNAPSHOT_RUN_ON_START: ${EC2_SNAPSHOT_RUN_ON_START:-true}
+      EC2_SNAPSHOT_RETRY_MINUTES: ${EC2_SNAPSHOT_RETRY_MINUTES:-10}
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN:-}"
+      AWS_EC2_METADATA_DISABLED: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./api/src/account-aliases.json:/app/src/account-aliases.json:ro
+      - ./api/src/accounts-config.json:/app/src/accounts-config.json:ro
+      - ./api/src/accounts-config.json:/app/accounts-config.json:ro
+
+volumes:
+  db_data_1761133439:

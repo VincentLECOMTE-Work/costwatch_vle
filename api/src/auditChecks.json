@@ -1,0 +1,179 @@
+{
+  "lastUpdated": "2024-05-01",
+  "categories": [
+    {
+      "id": "iam",
+      "title": "Identité et accès (IAM)",
+      "description": "Contrôles relatifs à la gouvernance des identités, la gestion des privilèges et la rotation des secrets.",
+      "checks": [
+        {
+          "id": "iam-mfa-root",
+          "title": "Activer l'authentification multi-facteur sur le compte root",
+          "status": "critique",
+          "recommendation": "Activer MFA sur le compte root AWS afin de prévenir les usages malveillants en cas de fuite d'identifiants.",
+          "actions": [
+            "Configurer un dispositif MFA matériel ou virtuel.",
+            "Limiter les accès root aux opérations exceptionnelles seulement."
+          ],
+          "resources": [
+            {
+              "label": "CIS AWS Foundations Benchmark - Section 1.1",
+              "url": "https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/security-iam.html"
+            },
+            {
+              "label": "AWS IAM best practices",
+              "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html"
+            }
+          ]
+        },
+        {
+          "id": "iam-least-privilege",
+          "title": "Appliquer le principe du moindre privilège",
+          "status": "a_verifier",
+          "recommendation": "Revoir les politiques IAM accordant des permissions larges (*:*) et les remplacer par des accès ciblés.",
+          "actions": [
+            "Auditer les politiques existantes avec IAM Access Analyzer.",
+            "Restreindre les actions administratives aux rôles d'exploitation." 
+          ],
+          "resources": [
+            {
+              "label": "AWS IAM Access Analyzer",
+              "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/what-is-access-analyzer.html"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "logging",
+      "title": "Journalisation & traçabilité",
+      "description": "Contrôles liés à la collecte de logs, leur intégrité et leur conservation.",
+      "checks": [
+        {
+          "id": "logging-cloudtrail",
+          "title": "CloudTrail activé sur tous les comptes",
+          "status": "a_verifier",
+          "recommendation": "Vérifier que CloudTrail multi-région est activé et qu'il alimente un bucket S3 sécurisé.",
+          "actions": [
+            "Activer un trail organisationnel si Organizations est utilisé.",
+            "Configurer le chiffrement SSE-KMS pour le bucket de logs."
+          ],
+          "resources": [
+            {
+              "label": "AWS CloudTrail User Guide",
+              "url": "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html"
+            }
+          ]
+        },
+        {
+          "id": "logging-config",
+          "title": "AWS Config enregistre les changements de ressources",
+          "status": "conforme",
+          "recommendation": "S'assurer que des règles AWS Config surveillent les configurations critiques et qu'elles sont agrégées au niveau organisationnel.",
+          "actions": [
+            "Activer l'agrégation multi-compte/multi-région.",
+            "Mettre en place des notifications via EventBridge ou SNS."
+          ],
+          "resources": [
+            {
+              "label": "AWS Config best practices",
+              "url": "https://docs.aws.amazon.com/config/latest/developerguide/best-practices.html"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "monitoring",
+      "title": "Détection & monitoring",
+      "description": "Contrôles axés sur la visibilité opérationnelle et la réponse aux incidents.",
+      "checks": [
+        {
+          "id": "monitoring-guardduty",
+          "title": "GuardDuty activé sur l'ensemble des comptes",
+          "status": "critique",
+          "recommendation": "Activer Amazon GuardDuty dans toutes les régions actives et centraliser les résultats dans un compte sécurité.",
+          "actions": [
+            "Automatiser l'activation via AWS Organizations.",
+            "Configurer des intégrations avec Security Hub et AWS Chatbot."
+          ],
+          "resources": [
+            {
+              "label": "Amazon GuardDuty - Documentation",
+              "url": "https://docs.aws.amazon.com/guardduty/latest/ug/what-is-guardduty.html"
+            }
+          ]
+        },
+        {
+          "id": "monitoring-security-hub",
+          "title": "Security Hub agrège les findings de sécurité",
+          "status": "a_verifier",
+          "recommendation": "Vérifier que les standards CIS, Foundational Security Best Practices et PCI sont activés selon la criticité.",
+          "actions": [
+            "Automatiser l'ouverture de tickets via AWS Security Hub integrations.",
+            "Mettre en place des playbooks de remédiation avec Systems Manager." 
+          ],
+          "resources": [
+            {
+              "label": "AWS Security Hub - Getting Started",
+              "url": "https://docs.aws.amazon.com/securityhub/latest/userguide/what-is-aws-security-hub.html"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "network",
+      "title": "Réseau & périmètre",
+      "description": "Contrôles assurant la segmentation réseau, la sécurisation des flux et la protection périmétrique.",
+      "checks": [
+        {
+          "id": "network-nacl",
+          "title": "Listes de contrôle d'accès réseau restreintes",
+          "status": "conforme",
+          "recommendation": "Vérifier que les NACLs n'autorisent que les flux nécessaires et sont appliquées aux sous-réseaux sensibles.",
+          "actions": [
+            "Mettre en place des règles entrantes/sortantes spécifiques.",
+            "Auditer régulièrement les modifications via AWS Config." 
+          ],
+          "resources": [
+            {
+              "label": "VPC security documentation",
+              "url": "https://docs.aws.amazon.com/vpc/latest/userguide/security-best-practices.html"
+            }
+          ]
+        },
+        {
+          "id": "network-waf",
+          "title": "Protection applicative via AWS WAF",
+          "status": "a_verifier",
+          "recommendation": "Déployer AWS WAF sur les fronts CloudFront et ALB exposés publiquement avec des règles gérées.",
+          "actions": [
+            "Activer les managed rule groups pertinents.",
+            "Automatiser le blocage d'adresses IP malveillantes via AWS Firewall Manager."
+          ],
+          "resources": [
+            {
+              "label": "AWS WAF Developer Guide",
+              "url": "https://docs.aws.amazon.com/waf/latest/developerguide/what-is-aws-waf.html"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "externalResources": [
+    {
+      "label": "CIS AWS Foundations Benchmark",
+      "url": "https://d1.awsstatic.com/whitepapers/compliance/AWS_CIS_Foundations_Benchmark.pdf"
+    },
+    {
+      "label": "AWS Well-Architected - Security Pillar",
+      "url": "https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/welcome.html"
+    },
+    {
+      "label": "AWS Security Hub - Standards",
+      "url": "https://docs.aws.amazon.com/securityhub/latest/userguide/standards-reference.html"
+    }
+  ]
+}
